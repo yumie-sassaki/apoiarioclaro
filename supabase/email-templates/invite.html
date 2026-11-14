@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Seu acesso foi aprovado</title>
+  </head>
+  <body style="margin:0;background:#f8f7f5;color:#202020;font-family:Arial,sans-serif;line-height:1.5">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:32px 16px">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border:1px solid #e7e2dc;border-radius:16px">
+            <tr>
+              <td style="padding:36px 32px">
+                <p style="margin:0 0 20px;color:#16529b;font-size:20px;font-weight:700">Apoia Rio Claro</p>
+                <h1 style="margin:0 0 16px;font-size:26px;line-height:1.2">Seu acesso foi aprovado</h1>
+                <p style="margin:0 0 16px">Olá, {{ .Data.name }}!</p>
+                <p style="margin:0 0 24px">A solicitação da sua organização foi aprovada. Para acessar o painel, crie agora uma senha exclusiva para esta conta.</p>
+                <p style="margin:0 0 28px">
+                  <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#e95035;border-radius:10px;color:#ffffff;padding:13px 20px;text-decoration:none;font-weight:700">Criar minha senha</a>
+                </p>
+                <p style="margin:0;color:#6a625b;font-size:14px">Por segurança, este link é pessoal e temporário. Se você não solicitou este acesso, pode ignorar este e-mail.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
