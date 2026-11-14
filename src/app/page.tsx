@@ -314,7 +314,7 @@ export default function Home() {
                       : 'bg-white border border-stone-200 text-stone-700 hover:bg-[#EAF2FF]'
                   }`}
                 >
-                  Agasalhos
+                  Roupas e Agasalhos
                 </button>
               </div>
             </div>
