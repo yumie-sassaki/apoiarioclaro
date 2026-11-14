@@ -514,7 +514,7 @@ export default function PainelPage() {
               href="/"
               iconSize={40}
               textSize="text-xl sm:text-2xl"
-              textClassName="hidden min-[480px]:inline-block"
+              textClassName="hidden sm:inline-block"
               priority
             />
 

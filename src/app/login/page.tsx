@@ -236,7 +236,7 @@ export default function LoginPage() {
       {/* Header Superior Limpo */}
       <header className="bg-white border-b border-stone-200/80 sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-3 sm:px-4 h-16 sm:h-18 flex items-center justify-between">
-          <Logo href="/" iconSize={40} textSize="text-xl sm:text-2xl" priority />
+          <Logo href="/" iconSize={40} textSize="text-xl sm:text-2xl" textClassName="hidden sm:inline-block" priority />
 
           <Link
             href="/"

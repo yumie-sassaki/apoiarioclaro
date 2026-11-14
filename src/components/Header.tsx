@@ -41,6 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setActiveTab('campanhas')}
               iconSize={40}
               textSize="text-xl sm:text-2xl"
+              textClassName="hidden sm:inline-block"
               priority
             />
 
