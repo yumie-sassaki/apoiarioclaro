@@ -140,7 +140,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="inline-flex items-center gap-1.5 bg-[#EAF2FF] hover:bg-[#DCEBFF] text-[#0D4183] font-semibold text-xs px-3.5 py-2 rounded-full transition-colors whitespace-nowrap"
                 >
                   <User className="w-3.5 h-3.5 text-[#0D4183] shrink-0" />
-                  <span>Área da entidade</span>
+                  <span>Sou Representante</span>
                 </Link>
               )}
             </div>
