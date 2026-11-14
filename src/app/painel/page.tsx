@@ -1180,26 +1180,13 @@ export default function PainelPage() {
           <div className="space-y-6">
             
             {/* Cabeçalho de ações das campanhas */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-stone-900 font-display">
-                  Minhas Campanhas
-                </h1>
-                <p className="text-xs sm:text-sm text-stone-500">
-                  Gerencie suas campanhas ativas no mural e registre resultados ao final de cada ação.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setCampaignToEdit(null);
-                  setIsNewCampaignOpen(true);
-                }}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#E04F33] hover:bg-[#C84228] transition-colors shadow-xs cursor-pointer self-start sm:self-auto shrink-0"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Nova Campanha</span>
-              </button>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-stone-900 font-display">
+                Minhas Campanhas
+              </h1>
+              <p className="text-xs sm:text-sm text-stone-500">
+                Gerencie suas campanhas ativas no mural e registre resultados ao final de cada ação.
+              </p>
             </div>
 
             {/* Atalhos de campanhas da entidade */}
@@ -1240,7 +1227,10 @@ export default function PainelPage() {
                           Publique pedidos de alimentos, adesões de almoço beneficente, agasalhos ou cartinhas de apadrinhamento para mobilizar a comunidade.
                         </p>
                         <button
-                          onClick={() => setIsNewCampaignOpen(true)}
+                          onClick={() => {
+                            setCampaignToEdit(null);
+                            setIsNewCampaignOpen(true);
+                          }}
                           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#E04F33] hover:bg-[#C84127] transition-colors cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
@@ -1505,7 +1495,10 @@ export default function PainelPage() {
       {currentOrg && currentLoggedInUser?.role === 'representante' && (
         <button
           type="button"
-          onClick={() => setIsNewCampaignOpen(true)}
+          onClick={() => {
+            setCampaignToEdit(null);
+            setIsNewCampaignOpen(true);
+          }}
           className="fixed bottom-5 right-4 z-30 inline-flex h-12 items-center gap-2 rounded-full bg-[#E04F33] px-4 text-sm font-bold text-white shadow-lg shadow-[#E04F33]/30 transition-transform hover:bg-[#C84127] active:scale-95 sm:bottom-7 sm:right-7"
         >
           <Plus className="h-4 w-4 stroke-[2.5]" />
