@@ -80,6 +80,14 @@ function formatRequestedAt(value: string): string {
   });
 }
 
+function formatCampaignDate(value?: string): string {
+  if (!value) return '';
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value;
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString('pt-BR');
+}
+
 export default function PainelPage() {
   const router = useRouter();
 
@@ -493,7 +501,7 @@ export default function PainelPage() {
               <AlertCircle className="h-5 w-5" />
             </div>
             <h2 id="early-conclusion-title" className="mt-4 text-xl font-bold text-slate-900 font-display">Encerrar antes do prazo?</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">A campanha <strong>{campaignPendingConclusion.title}</strong> tem prazo até {new Date(campaignPendingConclusion.deadlineDate).toLocaleDateString('pt-BR')}. Ao continuar, você será direcionado para a prestação de contas.</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">A campanha <strong>{campaignPendingConclusion.title}</strong> tem prazo até {formatCampaignDate(campaignPendingConclusion.deadlineDate)}. Ao continuar, você será direcionado para a prestação de contas.</p>
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button type="button" onClick={() => setCampaignPendingConclusion(null)} className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer">Manter campanha ativa</button>
               <button type="button" onClick={confirmEarlyConclusion} className="rounded-xl bg-[#0D4183] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#09336A] cursor-pointer">Sim, concluir campanha</button>
@@ -1064,7 +1072,7 @@ export default function PainelPage() {
                             </span>
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3.5 h-3.5 text-stone-400" />
-                              Prazo: {new Date(camp.deadlineDate).toLocaleDateString('pt-BR')}
+                              Prazo: {formatCampaignDate(camp.deadlineDate)}
                             </span>
                             {camp.resultReport && (
                               <span className="text-emerald-600 font-semibold flex items-center gap-1">
@@ -1271,7 +1279,7 @@ export default function PainelPage() {
                                   </span>
                                   <span className="flex items-center gap-1">
                                     <Calendar className="w-3.5 h-3.5 text-stone-400" />
-                                    Prazo: {new Date(camp.deadlineDate).toLocaleDateString('pt-BR')}
+                                    Prazo: {formatCampaignDate(camp.deadlineDate)}
                                   </span>
                                 </div>
                               </div>
@@ -1358,7 +1366,7 @@ export default function PainelPage() {
                                   </span>
                                   <span className="flex items-center gap-1">
                                     <Calendar className="w-3.5 h-3.5 text-stone-400" />
-                                    Finalizada em: {camp.resultReport?.completedAt ? new Date(camp.resultReport.completedAt).toLocaleDateString('pt-BR') : new Date(camp.deadlineDate).toLocaleDateString('pt-BR')}
+                                    Finalizada em: {camp.resultReport?.completedAt ? formatCampaignDate(camp.resultReport.completedAt) : formatCampaignDate(camp.deadlineDate)}
                                   </span>
                                   {camp.resultReport && (
                                     <span className="text-emerald-700 font-semibold flex items-center gap-1">
@@ -1436,7 +1444,7 @@ export default function PainelPage() {
                                       Ação Concluída
                                     </span>
                                     <span className="text-xs text-stone-400">
-                                      Finalizada em {camp.resultReport?.completedAt ? new Date(camp.resultReport.completedAt).toLocaleDateString('pt-BR') : 'Recentemente'}
+                                      Finalizada em {camp.resultReport?.completedAt ? formatCampaignDate(camp.resultReport.completedAt) : 'Recentemente'}
                                     </span>
                                   </div>
                                 </div>
@@ -1499,7 +1507,7 @@ export default function PainelPage() {
             setCampaignToEdit(null);
             setIsNewCampaignOpen(true);
           }}
-          className="fixed bottom-5 right-4 z-30 inline-flex h-12 items-center gap-2 rounded-full bg-[#E04F33] px-4 text-sm font-bold text-white shadow-lg shadow-[#E04F33]/30 transition-transform hover:bg-[#C84127] active:scale-95 sm:bottom-7 sm:right-7"
+          className="fixed bottom-5 right-4 z-30 inline-flex h-12 items-center gap-2 rounded-full bg-[#E04F33] px-4 text-sm font-bold text-white shadow-sm transition-transform hover:bg-[#C84127] active:scale-95 sm:bottom-7 sm:right-7"
         >
           <Plus className="h-4 w-4 stroke-[2.5]" />
           Nova campanha
