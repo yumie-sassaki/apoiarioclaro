@@ -259,6 +259,9 @@ export async function updateOrganizationProfile(
   setStoredOrganizations(newOrgs);
 
   const logged = getStoredLoggedInOrg();
+  if (!updatedOrg && logged && logged.id === orgId) {
+    updatedOrg = { ...logged, ...updates };
+  }
   if (logged && logged.id === orgId && updatedOrg) {
     setStoredLoggedInOrg(updatedOrg);
   }

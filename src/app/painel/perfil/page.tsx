@@ -26,7 +26,7 @@ import {
   X,
   FileCheck2
 } from 'lucide-react';
-import { User, Organization } from '@/types';
+import { User, Organization, OrganizationCategory } from '@/types';
 import {
   getStoredLoggedInUser,
   setStoredLoggedInUser,
@@ -71,6 +71,31 @@ function InstagramIcon({ className = 'w-4 h-4' }: { className?: string }) {
   );
 }
 
+const INSTITUTION_CATEGORIES: Array<{ value: OrganizationCategory; label: string }> = [
+  { value: 'lar_idosos', label: 'Lar de Idosos' },
+  { value: 'orfanato', label: 'Acolhimento Infantojuvenil' },
+  { value: 'igreja', label: 'Igreja / Pastoral Social' },
+  { value: 'ong', label: 'ONG / Associação' },
+  { value: 'assistencia_social', label: 'Assistência Social Geral' }
+];
+
+function formatHeadquartersAddress(address?: string, neighborhood?: string): string {
+  const cleanAddress = (address || '').trim();
+  const cleanNeighborhood = (neighborhood || '').trim();
+  if (!cleanAddress) {
+    return cleanNeighborhood ? `${cleanNeighborhood}, Rio Claro - SP` : 'Rio Claro - SP';
+  }
+  const lower = cleanAddress.toLowerCase();
+  const parts = [cleanAddress];
+  if (cleanNeighborhood && !lower.includes(cleanNeighborhood.toLowerCase())) {
+    parts.push(cleanNeighborhood);
+  }
+  if (!lower.includes('rio claro')) {
+    parts.push('Rio Claro - SP');
+  }
+  return parts.join(' - ');
+}
+
 export default function PerfilPage() {
   const router = useRouter();
 
@@ -110,6 +135,11 @@ export default function PerfilPage() {
   const [contactWebsite, setContactWebsite] = useState('');
   const [isSavingPublicContact, setIsSavingPublicContact] = useState(false);
 
+  // Apresentação Pública da Instituição
+  const [orgDescription, setOrgDescription] = useState('');
+  const [orgCategory, setOrgCategory] = useState<OrganizationCategory>('assistencia_social');
+  const [isSavingPresentation, setIsSavingPresentation] = useState(false);
+
   // Modal de Solicitação de Alteração Cadastral
   const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
   const [changeJustification, setChangeJustification] = useState('');
@@ -136,6 +166,12 @@ export default function PerfilPage() {
 
     setCurrentUser(user);
     setCurrentOrg(org);
+    setOrgDescription(
+      org?.description && org.description.trim() !== 'Solicitação de credenciamento enviada pela organização.'
+        ? org.description
+        : ''
+    );
+    setOrgCategory(org?.category || 'assistencia_social');
     setReceiptMethods(org?.receiptMethods?.length ? org.receiptMethods : ['presencial']);
     const parsedContacts = parseOrganizationContacts(org);
     setContactWhatsapp(parsedContacts.whatsapp);
@@ -157,6 +193,12 @@ export default function PerfilPage() {
         const found = orgs.find((o) => o.id === user.organizationId);
         if (found) {
           setCurrentOrg(found);
+          setOrgDescription(
+            found.description && found.description.trim() !== 'Solicitação de credenciamento enviada pela organização.'
+              ? found.description
+              : ''
+          );
+          setOrgCategory(found.category || 'assistencia_social');
           setReceiptMethods(found.receiptMethods?.length ? found.receiptMethods : ['presencial']);
           const parsedFound = parseOrganizationContacts(found);
           setContactWhatsapp(parsedFound.whatsapp);
@@ -426,6 +468,39 @@ export default function PerfilPage() {
       setSaveError(error instanceof Error ? error.message : 'Não foi possível salvar os contatos públicos.');
     } finally {
       setIsSavingPublicContact(false);
+    }
+  };
+
+  // Salvar Apresentação Pública da Instituição
+  const handleSaveInstitutionPresentation = async () => {
+    if (!currentOrg) return;
+    const trimmedDesc = orgDescription.trim();
+    if (trimmedDesc.length < 10) {
+      setSaveError('Informe uma breve apresentação da instituição (mínimo de 10 caracteres).');
+      return;
+    }
+    setSaveError(null);
+    setIsSavingPresentation(true);
+    try {
+      const matchedCategory = INSTITUTION_CATEGORIES.find((item) => item.value === orgCategory);
+      const nextCategoryLabel = matchedCategory?.label || currentOrg.categoryLabel || 'Assistência Social Geral';
+      const updates: Partial<Organization> = {
+        description: trimmedDesc,
+        category: orgCategory,
+        categoryLabel: nextCategoryLabel
+      };
+      const updated = await updateOrganizationProfile(currentOrg.id, updates);
+      const nextOrg = updated || { ...currentOrg, ...updates };
+      setCurrentOrg(nextOrg);
+      setStoredLoggedInOrg(nextOrg);
+      setSaveSuccess('Apresentação pública da instituição atualizada com sucesso.');
+      setTimeout(() => setSaveSuccess(null), 5000);
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : 'Não foi possível salvar a apresentação da instituição.'
+      );
+    } finally {
+      setIsSavingPresentation(false);
     }
   };
 
@@ -902,6 +977,65 @@ export default function PerfilPage() {
               </div>
             </div>
 
+            {/* Apresentação Pública no Mural */}
+            <section className="space-y-4 pb-6 border-b border-stone-100">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-stone-700">
+                  Apresentação no Mural Público
+                </h3>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Essas informações aparecem no card da sua instituição na aba &quot;Instituições&quot; e podem ser atualizadas a qualquer momento.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
+                    Categoria / Causa Social
+                  </label>
+                  <select
+                    value={orgCategory}
+                    onChange={(e) => setOrgCategory(e.target.value as OrganizationCategory)}
+                    className="w-full h-11 px-3.5 rounded-xl border border-stone-300 bg-white text-sm focus:border-stone-900 focus:outline-hidden cursor-pointer"
+                  >
+                    {INSTITUTION_CATEGORIES.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
+                    Descrição / Sobre a Instituição
+                  </label>
+                  <textarea
+                    rows={3}
+                    maxLength={600}
+                    value={orgDescription}
+                    onChange={(e) => setOrgDescription(e.target.value)}
+                    placeholder="Conte um pouco sobre a instituição, público atendido ou trabalho realizado em Rio Claro."
+                    className="w-full p-3.5 rounded-xl border border-stone-300 text-sm focus:border-stone-900 focus:outline-hidden bg-white resize-none"
+                  />
+                  <p className="mt-1 text-[11px] text-stone-500">
+                    {orgDescription.length}/600 caracteres
+                  </p>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={handleSaveInstitutionPresentation}
+                    disabled={isSavingPresentation}
+                    className="inline-flex items-center justify-center px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#E04F33] hover:bg-[#C84127] disabled:opacity-50 transition-colors cursor-pointer shadow-xs"
+                  >
+                    <span>{isSavingPresentation ? 'Salvando...' : 'Salvar apresentação'}</span>
+                  </button>
+                </div>
+              </div>
+            </section>
+
             {/* Selo de Segurança da Curadoria */}
             <div className="p-4 rounded-xl bg-[#FFF8F5] border border-[#F3DFD8] space-y-1">
               <span className="block text-xs font-bold text-stone-900 tracking-wide uppercase">
@@ -956,33 +1090,16 @@ export default function PerfilPage() {
               </div>
 
               {/* Endereço da Sede em Rio Claro */}
-              <div className="p-3.5 rounded-xl border border-stone-200/70 bg-stone-50 space-y-1">
+              <div className="p-3.5 rounded-xl border border-stone-200/70 bg-stone-50 space-y-1 sm:col-span-2">
                 <div className="flex items-center gap-1.5 text-xs text-stone-500 font-medium">
                   <MapPin className="w-3.5 h-3.5 text-stone-400" />
                   <span>Endereço da Sede em Rio Claro</span>
                 </div>
                 <p
                   className="text-sm font-semibold text-stone-800 truncate"
-                  title={
-                    currentOrg?.address
-                      ? `${currentOrg.address} - ${currentOrg.neighborhood || 'Centro'}, Rio Claro - SP`
-                      : 'Rio Claro - SP'
-                  }
+                  title={formatHeadquartersAddress(currentOrg?.address, currentOrg?.neighborhood)}
                 >
-                  {currentOrg?.address
-                    ? `${currentOrg.address} - ${currentOrg.neighborhood || 'Centro'}`
-                    : 'Rio Claro - SP'}
-                </p>
-              </div>
-
-              {/* Categoria / Causa Social */}
-              <div className="p-3.5 rounded-xl border border-stone-200/70 bg-stone-50 space-y-1">
-                <div className="flex items-center gap-1.5 text-xs text-stone-500 font-medium">
-                  <HeartHandshake className="w-3.5 h-3.5 text-stone-400" />
-                  <span>Categoria / Causa Social</span>
-                </div>
-                <p className="text-sm font-semibold text-stone-800">
-                  {currentOrg?.categoryLabel || 'Assistência Social'}
+                  {formatHeadquartersAddress(currentOrg?.address, currentOrg?.neighborhood)}
                 </p>
               </div>
             </div>
