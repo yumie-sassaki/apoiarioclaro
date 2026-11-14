@@ -266,7 +266,19 @@ export default function Home() {
                       : 'bg-white border border-stone-200 text-stone-700 hover:bg-[#EAF2FF]'
                   }`}
                 >
-                  Almoços e Eventos
+                  Adesões e Vendas
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory('evento')}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                    selectedCategory === 'evento'
+                      ? 'bg-[#0D4183] text-white'
+                      : 'bg-white border border-stone-200 text-stone-700 hover:bg-[#EAF2FF]'
+                  }`}
+                >
+                  Eventos e Festas
                 </button>
 
                 <button

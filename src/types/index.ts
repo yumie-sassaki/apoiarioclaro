@@ -9,6 +9,7 @@ export type CampaignCategory =
   | 'alimentos' 
   | 'agasalho' 
   | 'adesao' 
+  | 'evento'
   | 'cartinhas' 
   | 'financeiro' 
   | 'voluntariado';
@@ -56,6 +57,7 @@ export interface Campaign {
   category: CampaignCategory;
   categoryLabel: string;
   urgency: 'alta' | 'media' | 'normal';
+  startDate?: string; // YYYY-MM-DD (opcional)
   deadlineDate: string; // YYYY-MM-DD
   location: string;
   saleLocations?: SaleLocation[];

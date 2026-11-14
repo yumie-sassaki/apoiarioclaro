@@ -22,13 +22,22 @@ interface CategoryQuestions {
 
 const categoryQuestions: Record<CampaignCategory, CategoryQuestions> = {
   adesao: {
-    totalQuestion: '1. Quantas adesões foram vendidas ou qual foi o valor total arrecadado?',
+    totalQuestion: '1. Quantas adesões ou itens foram vendidos, ou qual foi o valor total arrecadado?',
     totalPlaceholder: 'Ex.: 180 adesões vendidas (R$ 8.100,00 arrecadados)',
+    beneficiariesQuestion: '2. Quem será beneficiado com o resultado desta ação?',
+    beneficiariesPlaceholder: 'Ex.: 65 idosos acolhidos pela instituição',
+    summaryQuestion: '3. Como foi a entrega e onde o valor arrecadado será utilizado?',
+    summaryPlaceholder:
+      'Conte brevemente como foi a entrega e em que a instituição aplicará os recursos...'
+  },
+  evento: {
+    totalQuestion: '1. Qual foi o público participante ou o resultado alcançado no evento?',
+    totalPlaceholder: 'Ex.: Cerca de 250 participantes e R$ 6.400,00 arrecadados nas barracas',
     beneficiariesQuestion: '2. Quem será beneficiado com o resultado deste evento?',
     beneficiariesPlaceholder: 'Ex.: 65 idosos acolhidos pela instituição',
-    summaryQuestion: '3. Como foi o evento e onde o valor arrecadado será utilizado?',
+    summaryQuestion: '3. Como foi a realização do evento e como ele ajudou a instituição?',
     summaryPlaceholder:
-      'Conte brevemente como foi a realização do evento e em que a instituição aplicará os recursos...'
+      'Conte brevemente como foi a festa ou evento e como o resultado apoiará as atividades da entidade...'
   },
   alimentos: {
     totalQuestion: '1. Quantos quilos de alimentos ou cestas básicas foram arrecadados?',

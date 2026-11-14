@@ -73,6 +73,7 @@ export const CampaignDetailModal: React.FC<CampaignDetailModalProps> = ({ campai
     window.open(`https://api.whatsapp.com/send?text=${message}`, '_blank');
   };
 
+  const formattedStartDate = campaign.startDate ? formatDeadlineDate(campaign.startDate) : '';
   const formattedDeadline = formatDeadlineDate(campaign.deadlineDate);
   const displayLocation = formatCampaignLocation(campaign.location, campaign.neighborhood);
   const contacts = parseOrganizationContacts(organization);
@@ -144,15 +145,17 @@ export const CampaignDetailModal: React.FC<CampaignDetailModalProps> = ({ campai
 
               {/* Informações importantes no corpo principal */}
               <div className="rounded-2xl border border-stone-200/80 bg-[#FAF8F5] p-4 space-y-3">
-                {campaign.ticketPrice !== undefined && campaign.ticketPrice > 0 && (
+                {((campaign.ticketPrice !== undefined && campaign.ticketPrice > 0) || campaign.category === 'adesao') && (
                   <div className="flex items-start gap-2.5">
                     <Ticket className="w-4 h-4 text-[#E04F33] shrink-0 mt-0.5" />
                     <div>
                       <span className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">
-                        Valor da adesão
+                        Valor da adesão / item
                       </span>
                       <span className="text-sm sm:text-base font-bold text-stone-900">
-                        {campaign.ticketPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        {campaign.ticketPrice !== undefined && campaign.ticketPrice > 0
+                          ? campaign.ticketPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                          : 'Sob consulta'}
                       </span>
                     </div>
                   </div>
@@ -191,10 +194,18 @@ export const CampaignDetailModal: React.FC<CampaignDetailModalProps> = ({ campai
                     <Clock className="w-4 h-4 text-stone-500 shrink-0 mt-0.5" />
                     <div>
                       <span className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">
-                        Prazo / Data limite
+                        {formattedStartDate && campaign.startDate !== campaign.deadlineDate
+                          ? 'Período'
+                          : campaign.category === 'evento'
+                            ? 'Data do evento'
+                            : 'Prazo / Data limite'}
                       </span>
                       <span className="text-sm font-medium text-stone-800">
-                        Até {formattedDeadline}
+                        {formattedStartDate && campaign.startDate !== campaign.deadlineDate
+                          ? `De ${formattedStartDate} até ${formattedDeadline}`
+                          : campaign.category === 'evento'
+                            ? formattedDeadline
+                            : `Até ${formattedDeadline}`}
                       </span>
                     </div>
                   </div>

@@ -9,6 +9,13 @@ interface CampaignCardProps {
   onOpenDetails: (campaign: Campaign) => void;
 }
 
+function formatShortDate(dateStr: string): string {
+  const normalized = dateStr.includes('T') ? dateStr : `${dateStr}T12:00:00`;
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) return dateStr;
+  return parsed.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
 export const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onOpenDetails }) => {
   return (
     <div 
@@ -54,7 +61,11 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onOpenDeta
           </div>
 
           <div className="flex items-center gap-1">
-            <span>Até {new Date(campaign.deadlineDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+            <span>
+              {campaign.startDate && campaign.startDate !== campaign.deadlineDate
+                ? `${formatShortDate(campaign.startDate)} a ${formatShortDate(campaign.deadlineDate)}`
+                : `${campaign.category === 'evento' ? 'Dia' : 'Até'} ${formatShortDate(campaign.deadlineDate)}`}
+            </span>
             <span className="font-semibold text-[#0D4183] ml-1 group-hover:text-[#2575D0] transition-colors">
               Ver como ajudar →
             </span>

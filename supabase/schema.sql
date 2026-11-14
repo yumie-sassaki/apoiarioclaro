@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS public.campanhas (
   categoria TEXT NOT NULL,
   categoria_rotulo TEXT NOT NULL,
   urgencia TEXT NOT NULL DEFAULT 'normal',
+  data_inicio DATE,
   data_limite DATE NOT NULL,
   local_entrega TEXT NOT NULL,
   pontos_venda JSONB NOT NULL DEFAULT '[]'::jsonb,
