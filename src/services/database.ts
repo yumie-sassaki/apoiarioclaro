@@ -619,16 +619,47 @@ export async function updateUserInDb(userId: string, updates: Partial<User>): Pr
   return updatedUser;
 }
 
+async function callAdminDeleteApi(payload: {
+  userId?: string;
+  organizationId?: string;
+}): Promise<{ deletedUserIds: string[]; deletedOrganizationId: string | null }> {
+  if (!supabase) {
+    throw new Error('O Supabase precisa estar configurado para executar esta exclusão.');
+  }
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) {
+    throw new Error('Sua sessão expirou. Entre novamente para continuar.');
+  }
+
+  const response = await fetch('/api/admin/delete-user', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const result = await response.json() as {
+    error?: string;
+    deletedUserIds?: string[];
+    deletedOrganizationId?: string | null;
+  };
+  if (!response.ok) {
+    throw new Error(result.error || 'Não foi possível concluir a exclusão.');
+  }
+
+  return {
+    deletedUserIds: result.deletedUserIds || [],
+    deletedOrganizationId: result.deletedOrganizationId || null
+  };
+}
+
 export async function deleteUserFromDb(userId: string): Promise<void> {
   if (isSupabaseConfigured && supabase) {
-    try {
-      await supabase
-        .from('usuarios')
-        .delete()
-        .eq('id', userId);
-    } catch (err) {
-      console.warn('Erro ao deletar usuário no Supabase:', err);
-    }
+    await callAdminDeleteApi({ userId });
   }
 
   const existing = getStoredUsers();
@@ -636,9 +667,32 @@ export async function deleteUserFromDb(userId: string): Promise<void> {
   setStoredUsers(filtered);
 }
 
+export async function deleteOrganizationFromDb(
+  organizationId: string
+): Promise<{ deletedUserIds: string[] }> {
+  let deletedUserIds: string[] = [];
+
+  if (isSupabaseConfigured && supabase) {
+    const result = await callAdminDeleteApi({ organizationId });
+    deletedUserIds = result.deletedUserIds;
+  }
+
+  setStoredOrganizations(getStoredOrganizations().filter((org) => org.id !== organizationId));
+  setStoredCampaigns(getStoredCampaigns().filter((camp) => camp.organizationId !== organizationId));
+  setStoredUsers(
+    getStoredUsers().filter((user) =>
+      isSupabaseConfigured && supabase
+        ? !deletedUserIds.includes(user.id)
+        : user.organizationId !== organizationId
+    )
+  );
+
+  return { deletedUserIds };
+}
+
 export async function approveVerificationRequestInDb(
   req: VerificationRequest
-): Promise<{ org: Organization; user: User }> {
+): Promise<{ org: Organization; user: User; reusedExistingAccount?: boolean }> {
   if (!supabase) {
     throw new Error('O Supabase precisa estar configurado para aprovar uma solicitação.');
   }
@@ -657,11 +711,20 @@ export async function approveVerificationRequestInDb(
     },
     body: JSON.stringify(req)
   });
-  const result = await response.json() as { error?: string; org?: Organization; user?: User };
+  const result = await response.json() as {
+    error?: string;
+    org?: Organization;
+    user?: User;
+    reusedExistingAccount?: boolean;
+  };
   if (!response.ok || !result.org || !result.user) {
     throw new Error(result.error || 'Não foi possível aprovar a solicitação.');
   }
 
-  return { org: result.org, user: result.user };
+  return {
+    org: result.org,
+    user: result.user,
+    reusedExistingAccount: Boolean(result.reusedExistingAccount)
+  };
 }
 

@@ -94,23 +94,110 @@ export async function POST(request: NextRequest) {
       .eq('status', 'aprovado');
   };
 
+  const { data: existingProfileByEmail } = await admin
+    .from('usuarios')
+    .select('id, email, nome, papel, instituicao_id, telefone, ativo')
+    .eq('email', email)
+    .maybeSingle();
+
+  if (existingProfileByEmail?.papel === 'mestre') {
+    await releaseRequest();
+    return badRequest(
+      'Este e-mail pertence à conta de Administração Mestre e não pode ser usado como representante.',
+      409
+    );
+  }
+
   const origin = new URL(request.url).origin;
   const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { name: body.responsibleName },
+    data: { name: body.responsibleName.trim() },
     redirectTo: `${origin}/primeiro-acesso`
   });
 
+  let targetUserId: string;
+  let reusedExistingAccount = false;
+  let existingProfile = existingProfileByEmail;
+  let previousLinkedOrgIds: string[] = [];
+
   if (inviteError || !inviteData.user) {
-    await releaseRequest();
-    console.error('Falha ao enviar convite de acesso:', inviteError?.message);
-    return badRequest('Não foi possível criar o acesso agora. Atualize a página antes de tentar novamente.', 409);
+    let existingUserId = existingProfile?.id || null;
+
+    if (!existingUserId) {
+      const { data: usersPage, error: listUsersError } = await admin.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000
+      });
+      if (!listUsersError && usersPage?.users) {
+        const matchedAuthUser = usersPage.users.find((u) => u.email?.toLowerCase() === email);
+        if (matchedAuthUser) {
+          existingUserId = matchedAuthUser.id;
+        }
+      }
+    }
+
+    if (existingUserId) {
+      if (!existingProfile || existingProfile.id !== existingUserId) {
+        const { data: profileById } = await admin
+          .from('usuarios')
+          .select('id, email, nome, papel, instituicao_id, telefone, ativo')
+          .eq('id', existingUserId)
+          .maybeSingle();
+        existingProfile = profileById;
+      }
+
+      if (existingProfile?.papel === 'mestre') {
+        await releaseRequest();
+        return badRequest(
+          'Este e-mail pertence à conta de Administração Mestre e não pode ser usado como representante.',
+          409
+        );
+      }
+
+      reusedExistingAccount = true;
+      targetUserId = existingUserId;
+
+      const { data: linkedOrgs } = await admin
+        .from('instituicoes')
+        .select('id')
+        .eq('usuario_auth_id', existingUserId);
+      previousLinkedOrgIds = (linkedOrgs || []).map((row) => row.id);
+
+      if (previousLinkedOrgIds.length > 0) {
+        await admin
+          .from('instituicoes')
+          .update({ usuario_auth_id: null })
+          .eq('usuario_auth_id', existingUserId);
+      }
+
+      await admin.auth.admin.updateUserById(existingUserId, {
+        user_metadata: { name: body.responsibleName.trim() }
+      });
+    } else {
+      await releaseRequest();
+      console.error('Falha ao enviar convite de acesso:', inviteError?.message);
+      const rawMessage = inviteError?.message || '';
+      if (/rate\s*limit|too many/i.test(rawMessage)) {
+        return badRequest(
+          'Limite temporário de envio de e-mails atingido. Aguarde alguns minutos e tente novamente.',
+          429
+        );
+      }
+      return badRequest(
+        rawMessage
+          ? `Não foi possível criar o acesso agora: ${rawMessage}`
+          : 'Não foi possível criar o acesso agora. Atualize a página antes de tentar novamente.',
+        409
+      );
+    }
+  } else {
+    targetUserId = inviteData.user.id;
   }
 
   const organizationId = crypto.randomUUID();
   const now = new Date().toISOString();
   const organizationPayload = {
     id: organizationId,
-    usuario_auth_id: inviteData.user.id,
+    usuario_auth_id: targetUserId,
     nome: body.orgName.trim(),
     categoria: body.category,
     categoria_rotulo: categoryLabels[body.category],
@@ -140,15 +227,20 @@ export async function POST(request: NextRequest) {
   let profileError: { message: string } | null = organizationError;
   if (!organizationError) {
     for (let attempt = 0; attempt < 4; attempt += 1) {
-      const { error } = await admin.from('usuarios').insert({
-        id: inviteData.user.id,
-        email,
-        nome: body.responsibleName.trim(),
-        papel: 'representante',
-        instituicao_id: organizationId,
-        telefone: body.phone?.trim() || body.whatsapp.trim(),
-        ativo: true
-      });
+      const { error } = await admin
+        .from('usuarios')
+        .upsert(
+          {
+            id: targetUserId,
+            email,
+            nome: body.responsibleName.trim(),
+            papel: 'representante',
+            instituicao_id: organizationId,
+            telefone: body.phone?.trim() || body.whatsapp.trim(),
+            ativo: true
+          },
+          { onConflict: 'id' }
+        );
       if (!error) {
         profileError = null;
         break;
@@ -162,14 +254,37 @@ export async function POST(request: NextRequest) {
 
   if (requestError) {
     console.error('Falha ao provisionar organização convidada:', requestError.message);
-    await admin.from('usuarios').delete().eq('id', inviteData.user.id);
     await admin.from('instituicoes').delete().eq('id', organizationId);
-    await admin.auth.admin.deleteUser(inviteData.user.id);
+
+    if (reusedExistingAccount) {
+      if (previousLinkedOrgIds.length > 0) {
+        await admin
+          .from('instituicoes')
+          .update({ usuario_auth_id: targetUserId })
+          .eq('id', previousLinkedOrgIds[0]);
+      }
+      if (existingProfile) {
+        await admin
+          .from('usuarios')
+          .update({
+            nome: existingProfile.nome,
+            instituicao_id: existingProfile.instituicao_id,
+            telefone: existingProfile.telefone,
+            ativo: existingProfile.ativo
+          })
+          .eq('id', targetUserId);
+      }
+    } else {
+      await admin.from('usuarios').delete().eq('id', targetUserId);
+      await admin.auth.admin.deleteUser(targetUserId);
+    }
+
     await releaseRequest();
     return badRequest('Não foi possível concluir a aprovação. Nenhum acesso foi criado.', 500);
   }
 
   return NextResponse.json({
+    reusedExistingAccount,
     org: {
       id: organizationId,
       name: body.orgName.trim(),
@@ -187,7 +302,7 @@ export async function POST(request: NextRequest) {
       contactEmail: email
     },
     user: {
-      id: inviteData.user.id,
+      id: targetUserId,
       email,
       name: body.responsibleName.trim(),
       role: 'representante',

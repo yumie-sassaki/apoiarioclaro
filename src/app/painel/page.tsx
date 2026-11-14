@@ -52,7 +52,8 @@ import {
   updateVerificationRequestStatusInDb,
   fetchUsers,
   fetchUserById,
-  deleteUserFromDb
+  deleteUserFromDb,
+  deleteOrganizationFromDb
   , fetchCadastralRequests
   , reviewCadastralRequestInDb
 } from '@/services/database';
@@ -60,6 +61,24 @@ import { NewCampaignModal } from '@/components/NewCampaignModal';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { HelpSupportButton } from '@/components/HelpSupportButton';
 import { supabase } from '@/lib/supabase';
+
+const ORGANIZATION_CATEGORY_LABELS: Record<string, string> = {
+  lar_idosos: 'Lar de Idosos',
+  orfanato: 'Acolhimento Infantojuvenil',
+  igreja: 'Igreja / Pastoral Social',
+  ong: 'ONG / Associação',
+  assistencia_social: 'Assistência Social Geral'
+};
+
+function formatRequestedAt(value: string): string {
+  if (!value) return 'Data não informada';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleString('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short'
+  });
+}
 
 export default function PainelPage() {
   const router = useRouter();
@@ -191,7 +210,7 @@ export default function PainelPage() {
     if (approvingRequestId) return;
     setApprovingRequestId(req.id);
     try {
-      const { org: newOrg, user: newUser } = await approveVerificationRequestInDb(req);
+      const { org: newOrg, user: newUser, reusedExistingAccount } = await approveVerificationRequestInDb(req);
 
       // Atualiza estados locais
       setAllRequests((prev) =>
@@ -200,7 +219,11 @@ export default function PainelPage() {
       setAllOrganizations((prev) => [newOrg, ...prev.filter((o) => o.id !== newOrg.id)]);
       setAllUsers((prev) => [newUser, ...prev.filter((u) => u.id !== newUser.id)]);
 
-      showFeedback(`"${req.orgName}" aprovada. O convite para definir a senha foi enviado para ${newUser.email}.`);
+      showFeedback(
+        reusedExistingAccount
+          ? `"${req.orgName}" aprovada! O acesso foi vinculado à conta existente de ${newUser.email}.`
+          : `"${req.orgName}" aprovada. O convite para definir a senha foi enviado para ${newUser.email}.`
+      );
     } catch (err) {
       console.error('Erro ao aprovar solicitação:', err);
       alert(err instanceof Error ? err.message : 'Erro ao processar aprovação.');
@@ -265,9 +288,35 @@ export default function PainelPage() {
       description: 'Esta pessoa perderá o acesso ao painel da organização.',
       confirmLabel: 'Revogar acesso',
       action: async () => {
-        await deleteUserFromDb(userId);
-        setAllUsers((prev) => prev.filter((u) => u.id !== userId));
-        showFeedback('Acesso do usuário revogado com sucesso.');
+        try {
+          await deleteUserFromDb(userId);
+          setAllUsers((prev) => prev.filter((u) => u.id !== userId));
+          showFeedback('Acesso do usuário revogado com sucesso.');
+        } catch (err) {
+          alert(err instanceof Error ? err.message : 'Não foi possível revogar o acesso.');
+        }
+      }
+    });
+  };
+
+  // Excluir Instituição (Mestre)
+  const handleDeleteOrganization = async (org: Organization) => {
+    setConfirmation({
+      title: `Excluir "${org.name}"?`,
+      description: 'A instituição, suas campanhas no mural e o acesso exclusivo vinculado a ela serão removidos permanentemente.',
+      confirmLabel: 'Excluir instituição',
+      action: async () => {
+        try {
+          const { deletedUserIds } = await deleteOrganizationFromDb(org.id);
+          setAllOrganizations((prev) => prev.filter((o) => o.id !== org.id));
+          setAllCampaigns((prev) => prev.filter((c) => c.organizationId !== org.id));
+          if (deletedUserIds.length > 0) {
+            setAllUsers((prev) => prev.filter((u) => !deletedUserIds.includes(u.id)));
+          }
+          showFeedback(`"${org.name}" excluída com sucesso.`);
+        } catch (err) {
+          alert(err instanceof Error ? err.message : 'Não foi possível excluir a instituição.');
+        }
       }
     });
   };
@@ -782,7 +831,7 @@ export default function PainelPage() {
                               </span>
                             </div>
                             <span className="text-xs text-stone-500">
-                              Solicitado em {req.requestedAt} · Causa: <strong>{req.category}</strong>
+                              Solicitado em {formatRequestedAt(req.requestedAt)} · Causa: <strong>{ORGANIZATION_CATEGORY_LABELS[req.category] || req.category}</strong>
                             </span>
                           </div>
 
@@ -899,9 +948,20 @@ export default function PainelPage() {
                               {org.neighborhood}, Rio Claro · {org.categoryLabel}
                             </p>
                           </div>
-                          <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-stone-100 text-stone-700 whitespace-nowrap">
-                            {activeCount} {activeCount === 1 ? 'campanha' : 'campanhas'}
-                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-stone-100 text-stone-700 whitespace-nowrap">
+                              {activeCount} {activeCount === 1 ? 'campanha' : 'campanhas'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteOrganization(org)}
+                              className="p-2 rounded-xl text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              title={`Excluir instituição ${org.name}`}
+                              aria-label={`Excluir instituição ${org.name}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 text-xs text-stone-600 bg-[#FAF8F5] p-3 rounded-xl border border-stone-200">
