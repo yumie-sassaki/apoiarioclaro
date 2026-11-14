@@ -37,16 +37,15 @@ export const getStoredUsers = (): User[] => {
   try {
     const data = localStorage.getItem(USERS_KEY);
     if (!data) return INITIAL_USERS;
-    const list: User[] = JSON.parse(data);
-    const missing = INITIAL_USERS.filter(
-      (initU) => !list.some((u) => u.email.toLowerCase() === initU.email.toLowerCase())
+    const parsed: unknown = JSON.parse(data);
+    if (!Array.isArray(parsed)) return INITIAL_USERS;
+    const filtered = (parsed as User[]).filter(
+      (u) => u.id !== 'user-mestre' && u.id !== 'user-rep-1'
     );
-    if (missing.length > 0) {
-      const merged = [...list, ...missing];
-      localStorage.setItem(USERS_KEY, JSON.stringify(merged));
-      return merged;
+    if (filtered.length !== parsed.length) {
+      localStorage.setItem(USERS_KEY, JSON.stringify(filtered));
     }
-    return list;
+    return filtered;
   } catch {
     return INITIAL_USERS;
   }
@@ -90,7 +89,14 @@ export const getStoredOrganizations = (): Organization[] => {
   if (typeof window === 'undefined') return INITIAL_ORGANIZATIONS;
   try {
     const data = localStorage.getItem(ORGANIZATIONS_KEY);
-    return data ? JSON.parse(data) : INITIAL_ORGANIZATIONS;
+    if (!data) return INITIAL_ORGANIZATIONS;
+    const parsed: unknown = JSON.parse(data);
+    if (!Array.isArray(parsed)) return INITIAL_ORGANIZATIONS;
+    const filtered = (parsed as Organization[]).filter((o) => o.id !== 'org-1');
+    if (filtered.length !== parsed.length) {
+      localStorage.setItem(ORGANIZATIONS_KEY, JSON.stringify(filtered));
+    }
+    return filtered;
   } catch {
     return INITIAL_ORGANIZATIONS;
   }
@@ -109,7 +115,16 @@ export const getStoredCampaigns = (): Campaign[] => {
   if (typeof window === 'undefined') return INITIAL_CAMPAIGNS;
   try {
     const data = localStorage.getItem(CAMPAIGNS_KEY);
-    return data ? JSON.parse(data) : INITIAL_CAMPAIGNS;
+    if (!data) return INITIAL_CAMPAIGNS;
+    const parsed: unknown = JSON.parse(data);
+    if (!Array.isArray(parsed)) return INITIAL_CAMPAIGNS;
+    const filtered = (parsed as Campaign[]).filter(
+      (c) => c.id !== 'camp-1' && c.id !== 'camp-completed-1' && c.organizationId !== 'org-1'
+    );
+    if (filtered.length !== parsed.length) {
+      localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(filtered));
+    }
+    return filtered;
   } catch {
     return INITIAL_CAMPAIGNS;
   }
@@ -128,7 +143,14 @@ export const getStoredRequests = (): VerificationRequest[] => {
   if (typeof window === 'undefined') return INITIAL_REQUESTS;
   try {
     const data = localStorage.getItem(REQUESTS_KEY);
-    return data ? JSON.parse(data) : INITIAL_REQUESTS;
+    if (!data) return INITIAL_REQUESTS;
+    const parsed: unknown = JSON.parse(data);
+    if (!Array.isArray(parsed)) return INITIAL_REQUESTS;
+    const filtered = (parsed as VerificationRequest[]).filter((r) => r.id !== 'req-1');
+    if (filtered.length !== parsed.length) {
+      localStorage.setItem(REQUESTS_KEY, JSON.stringify(filtered));
+    }
+    return filtered;
   } catch {
     return INITIAL_REQUESTS;
   }
